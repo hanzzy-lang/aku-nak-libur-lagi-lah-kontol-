@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TKA 2026 | Professional Assessment System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0f172a;
+            --sidebar: #1e293b;
+            --accent: #3b82f6;
+            --admin: #f59e0b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --glass: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.08);
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+        }
+
+        * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            margin: 0; background: var(--primary); color: var(--text-main); 
+            overflow: hidden; user-select: none; -webkit-user-select: none;
+        }
+
+        /* --- AUTH LAYER --- */
+        #auth-gate {
+            position: fixed; inset: 0; z-index: 9999;
+            background: radial-gradient(circle at top right, #1e293b, #020617);
+            display: flex; align-items: center; justify-content: center; padding: 20px;
+        }
+
+        .auth-card {
+            background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(25px);
+            padding: 2.5rem; border-radius: 28px; border: 1px solid var(--border);
+            width: 100%; max-width: 400px; text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        }
+
+        .input-box { text-align: left; margin-bottom: 1rem; }
+        .input-box label { font-size: 0.7rem; color: var(--text-dim); font-weight: 700; margin-left: 5px; }
+        
+        input {
+            width: 100%; padding: 14px 18px; background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border); border-radius: 14px; color: white;
+            font-size: 1rem; outline: none; margin-top: 5px;
+        }
+        input:focus { border-color: var(--accent); background: rgba(0,0,0,0.5); }
+
+        .btn-action {
+            width: 100%; padding: 16px; background: var(--accent); border: none;
+            border-radius: 14px; color: white; font-weight: 800; cursor: pointer;
+            margin-top: 1rem; font-size: 0.9rem; letter-spacing: 0.5px;
+        }
+
+        /* --- LAYOUT ENGINE --- */
+        #main-dashboard { 
+            display: none; height: 100vh; 
+            display: none; /* Inisial hidden */
+        }
+
+        /* Desktop Sidebar */
+        .desktop-sidebar {
+            width: 300px; background: var(--sidebar); border-right: 1px solid var(--border);
+            display: flex; flex-direction: column; padding: 2rem;
+        }
+
+        /* Responsive Wrapper */
+        .app-container {
+            display: flex; width: 100%; height: 100vh;
+        }
+
+        .stage {
+            flex: 1; display: flex; flex-direction: column; 
+            background: #0b1120; overflow-y: auto; padding: 2rem;
+            padding-bottom: 100px; /* Space for mobile nav */
+        }
+
+        /* --- UI COMPONENTS --- */
+        .status-header {
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--glass); padding: 1rem 1.5rem; border-radius: 20px;
+            border: 1px solid var(--border); margin-bottom: 1.5rem;
+        }
+
+        .question-box {
+            background: var(--sidebar); border-radius: 24px; padding: 2.5rem;
+            border: 1px solid var(--border); min-height: 450px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .opt-btn {
+            padding: 1.2rem; background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+            border-radius: 18px; cursor: pointer; display: flex; align-items: center; 
+            gap: 15px; margin-top: 10px; transition: 0.2s;
+        }
+        .opt-btn:active { transform: scale(0.98); }
+        .opt-btn.active { background: var(--accent); border-color: var(--accent); font-weight: 700; }
+
+        /* --- MOBILE NAVIGATION --- */
+        .mobile-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: rgba(30, 41, 59, 0.9); backdrop-filter: blur(15px);
+            border-top: 1px solid var(--border); padding: 15px;
+            display: none; grid-template-columns: repeat(5, 1fr); gap: 8px;
+            z-index: 1000; overflow-x: auto;
+        }
+
+        .num-dot {
+            min-width: 40px; height: 40px; border-radius: 10px;
+            background: var(--glass); border: 1px solid var(--border);
+            color: white; font-weight: 700; display: flex; align-items: center;
+            justify-content: center; font-size: 0.8rem; cursor: pointer;
+        }
+        .num-dot.active { border-color: var(--accent); color: var(--accent); }
+        .num-dot.done { background: var(--success); border: none; }
+
+        /* --- RESPONSIVE BREAKPOINTS --- */
+        @media (max-width: 1024px) {
+            .desktop-sidebar { display: none; }
+            .mobile-nav { display: flex; }
+            .stage { padding: 1rem; padding-bottom: 80px; }
+            .question-box { padding: 1.5rem; border-radius: 20px; }
+            .status-header { flex-direction: column; gap: 10px; text-align: center; }
+        }
+
+        /* --- UTILS --- */
+        .timer { font-size: 1.8rem; font-weight: 800; color: var(--danger); font-variant-numeric: tabular-nums; }
+        .badge { padding: 6px 12px; border-radius: 8px; font-size: 0.65rem; font-weight: 800; letter-spacing: 1px; }
+        .badge-live { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid var(--success); }
+    </style>
+</head>
+<body>
+
+    <div id="auth-gate">
+        <div class="auth-card">
+            <div style="background:var(--accent); width:40px; height:4px; margin:0 auto 1.5rem; border-radius:10px;"></div>
+            <h2 style="margin:0; letter-spacing:-0.5px;">CBT Gateway</h2>
+            <p style="color:var(--text-dim); font-size: 0.8rem; margin-bottom: 2rem;">Authorized Access Only</p>
+            
+            <div id="notice-bar" style="display:none; padding:10px; border-radius:12px; background:rgba(239, 68, 68, 0.1); color:var(--danger); font-size:0.75rem; margin-bottom:1rem;"></div>
+
+            <div class="input-box">
+                <label>IDENTITAS</label>
+                <input type="text" id="uid" placeholder="Nama Lengkap">
+            </div>
+            <div class="input-box">
+                <label>SECURITY KEY</label>
+                <input type="password" id="ukey" placeholder="Token / Admin Pw">
+            </div>
+
+            <button class="btn-action" onclick="validate()">LOGIN SYSTEM</button>
+            <div style="margin-top:1.5rem; font-size:0.65rem; color:var(--text-dim);">
+                SUPPORT: Desktop, Tablet, & Mobile (iOS/Android)
+            </div>
+        </div>
+    </div>
+
+    <div id="main-dashboard" class="app-container">
+        <aside class="desktop-sidebar">
+            <div style="background:var(--glass); padding:1.2rem; border-radius:20px; border:1px solid var(--border); display:flex; align-items:center; gap:12px; margin-bottom:2rem;">
+                <div id="avatar" style="width:45px; height:45px; background:var(--accent); border-radius:12px; display:flex; align-items:center; justify-content:center; font-weight:800;">?</div>
+                <div>
+                    <div id="disp-name" style="font-weight:700; font-size:0.9rem;">User</div>
+                    <div id="disp-role" style="font-size:0.65rem; color:var(--text-dim); font-weight:800;">CANDIDATE</div>
+                </div>
+            </div>
+
+            <div style="flex-grow:1;">
+                <p style="font-size:0.6rem; color:var(--text-dim); text-transform:uppercase; font-weight:800; margin-bottom:1rem;">Navigasi Nomor</p>
+                <div id="side-nav" style="display:grid; grid-template-columns: repeat(5, 1fr); gap:8px;"></div>
+            </div>
+
+            <div style="padding:15px; border:1px dashed var(--success); border-radius:15px; text-align:center;">
+                <div style="font-size:0.6rem; color:var(--text-dim);">LIVE TOKEN</div>
+                <b id="live-tk" style="color:var(--success); font-size:1.1rem;">--</b>
+            </div>
+        </aside>
+
+        <main class="stage">
+            <header class="status-header">
+                <div style="display:flex; gap:10px;">
+                    <span id="tag-mtk" class="badge">MTK (07-10)</span>
+                    <span id="tag-indo" class="badge">BINDO (11-14)</span>
+                </div>
+                <div class="timer" id="clock">90:00</div>
+            </header>
+
+            <div class="question-box">
+                <div id="q-content">
+                    </div>
+
+                <div style="margin-top:3rem; display:flex; justify-content:space-between; gap:15px;">
+                    <button class="btn-action" style="background:var(--glass); margin:0;" onclick="navigate(-1)">BACK</button>
+                    <button class="btn-action" style="margin:0;" onclick="navigate(1)" id="btn-main">NEXT</button>
+                </div>
+            </div>
+        </main>
+
+        <nav class="mobile-nav" id="mob-nav"></nav>
+    </div>
+
+    <script>
+        // --- CORE CONFIG ---
+        const MASTER = {
+            ADMIN_ID: "ADMIN",
+            ADMIN_PW: "250511",
+            HOURS: { op: [6, 15], mtk: [7, 10], bindo: [11, 14] }
+        };
+
+        let state = {
+            user: "", isAdmin: false, current: 0,
+            answers: new Array(50).fill(null),
+            time: 90 * 60
+        };
+
+        // --- TIME ENGINE ---
+        function getInfo() {
+            const h = new Date().getHours();
+            const m = new Date().getMinutes();
+            const token = "TKA" + h + Math.floor(m/5);
+            const isOp = (h >= MASTER.HOURS.op[0] && h < MASTER.HOURS.op[1]);
+            const isMtk = (h >= MASTER.HOURS.mtk[0] && h < MASTER.HOURS.mtk[1]);
+            const isIndo = (h >= MASTER.HOURS.bindo[0] && h < MASTER.HOURS.bindo[1]);
+            return { h, token, isOp, isMtk, isIndo };
+        }
+
+        setInterval(() => {
+            const info = getInfo();
+            const tk = document.getElementById('live-tk');
+            if(tk) tk.innerText = info.token;
+            
+            const n = document.getElementById('notice-bar');
+            if(!info.isOp) { n.innerText = "SISTEM OFFLINE (06:00 - 15:00)"; n.style.display = "block"; }
+            
+            const tM = document.getElementById('tag-mtk');
+            const tI = document.getElementById('tag-indo');
+            if(tM) tM.style.borderColor = info.isMtk ? "var(--success)" : "var(--border)";
+            if(tI) tI.style.borderColor = info.isIndo ? "var(--success)" : "var(--border)";
+        }, 1000);
+
+        // --- AUTH ---
+        function validate() {
+            const id = document.getElementById('uid').value;
+            const key = document.getElementById('ukey').value;
+            const info = getInfo();
+
+            const isAdmin = (id === MASTER.ADMIN_ID && key === MASTER.ADMIN_PW);
+            const isUser = (info.isOp && key === info.token);
+
+            if(isAdmin || isUser) {
+                state.user = id;
+                state.isAdmin = isAdmin;
+                startApp();
+            } else {
+                alert("Otentikasi Gagal! Periksa Token atau Jam Operasional.");
+            }
+        }
+
+        // --- APP ENGINE ---
+        const db = [];
+        for(let i=1; i<=50; i++) {
+            db.push({
+                id: i,
+                sub: i <= 25 ? "MATEMATIKA" : "B. INDONESIA",
+                q: i <= 25 ? `[MTK] Berapakah hasil dari ${i}x + ${i*2} jika x = 5?` : `[BINDO] Kalimat berikut yang mengandung majas personifikasi adalah...`,
+                opts: ["Pilihan A", "Pilihan B", "Pilihan C", "Pilihan D", "Pilihan E"],
+                ans: 2
+            });
+        }
+
+        function startApp() {
+            document.getElementById('auth-gate').style.display = "none";
+            document.getElementById('main-dashboard').style.display = "flex";
+            document.getElementById('disp-name').innerText = state.user;
+            document.getElementById('avatar').innerText = state.user[0].toUpperCase();
+            if(state.isAdmin) {
+                document.getElementById('avatar').style.background = "var(--admin)";
+                document.getElementById('disp-role').innerText = "SYSTEM ADMIN";
+                document.getElementById('disp-role').style.color = "var(--admin)";
+            }
+            render();
+            renderNav();
+            timer();
+        }
+
+        function render() {
+            const q = db[state.current];
+            const view = document.getElementById('q-content');
+            view.innerHTML = `
+                <div style="color:var(--accent); font-weight:800; font-size:0.7rem; letter-spacing:2px; margin-bottom:1rem;">${q.sub} | SOAL #${q.id}</div>
+                <h2 style="font-weight:600; line-height:1.4; font-size:1.2rem; margin-bottom:1.5rem;">${q.q}</h2>
+                <div>
+                    ${q.opts.map((o, i) => `
+                        <div class="opt-btn ${state.answers[state.current] === i ? 'active' : ''}" onclick="pick(${i})">
+                            <div style="width:25px; height:25px; border-radius:50%; background:rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; font-size:0.7rem;">${String.fromCharCode(65+i)}</div>
+                            ${o}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            document.getElementById('btn-main').innerText = state.current === 49 ? "SUBMIT" : "NEXT";
+        }
+
+        function pick(i) {
+            state.answers[state.current] = i;
+            render();
+            renderNav();
+        }
+
+        function navigate(dir) {
+            if(dir === 1 && state.current === 49) { if(confirm("Submit?")) finish(); return; }
+            state.current = Math.max(0, Math.min(49, state.current + dir));
+            render();
+            renderNav();
+        }
+
+        function renderNav() {
+            const side = document.getElementById('side-nav');
+            const mob = document.getElementById('mob-nav');
+            side.innerHTML = mob.innerHTML = '';
+
+            db.forEach((_, i) => {
+                const dot = document.createElement('div');
+                dot.className = `num-dot ${state.current === i ? 'active' : ''} ${state.answers[i] !== null ? 'done' : ''}`;
+                dot.innerText = i + 1;
+                dot.onclick = () => { state.current = i; render(); renderNav(); };
+                
+                side.appendChild(dot.cloneNode(true)).onclick = dot.onclick;
+                mob.appendChild(dot).onclick = dot.onclick;
+            });
+        }
+
+        function timer() {
+            const clock = document.getElementById('clock');
+            setInterval(() => {
+                state.time--;
+                const m = Math.floor(state.time / 60);
+                const s = state.time % 60;
+                clock.innerText = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                if(state.time <= 0) finish();
+            }, 1000);
+        }
+
+        function finish() {
+            alert("Ujian Selesai! Halaman akan dimuat ulang.");
+            location.reload();
+        }
+
+        // Security
+        document.addEventListener('contextmenu', e => e.preventDefault());
+    </script>
+</body>
+  </html>
